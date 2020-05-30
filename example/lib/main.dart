@@ -68,12 +68,12 @@ class _ExampleAppState extends State<ExampleApp> {
           key: Key('url1'),
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        PlayerWidget(url: kUrl1),
+        PlayerWidget(url: kUrl1, local: true,),
         Text(
           'Sample 2 ($kUrl2)',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        PlayerWidget(url: kUrl2),
+        PlayerWidget(url: kUrl2, local: true),
         Text(
           'Sample 3 ($kUrl3)',
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -83,7 +83,7 @@ class _ExampleAppState extends State<ExampleApp> {
           'Sample 4 (Low Latency mode) ($kUrl1)',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        PlayerWidget(url: kUrl1, mode: PlayerMode.LOW_LATENCY),
+        PlayerWidget(url: kUrl1, mode: PlayerMode.LOW_LATENCY, local: true),
       ]),
     );
   }

@@ -1,18 +1,26 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audio_cache.dart';
 
 enum PlayerState { stopped, playing, paused }
 enum PlayingRouteState { speakers, earpiece }
 
+List<AudioPlayer> play = [];
+
 class PlayerWidget extends StatefulWidget {
   final String url;
   final PlayerMode mode;
+  final bool local;
 
   PlayerWidget(
-      {Key key, @required this.url, this.mode = PlayerMode.MEDIA_PLAYER})
+      {Key key,
+      @required this.url,
+      this.mode = PlayerMode.MEDIA_PLAYER,
+      this.local = false})
       : super(key: key);
 
   @override
@@ -24,11 +32,11 @@ class PlayerWidget extends StatefulWidget {
 class _PlayerWidgetState extends State<PlayerWidget> {
   String url;
   PlayerMode mode;
-
+  AudioCache audioCache = AudioCache();
   AudioPlayer _audioPlayer;
   AudioPlayerState _audioPlayerState;
   Duration _duration;
-  Duration _position;
+  Duration _position = Duration(seconds: 0);
 
   PlayerState _playerState = PlayerState.stopped;
   PlayingRouteState _playingRouteState = PlayingRouteState.speakers;
@@ -39,8 +47,11 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   StreamSubscription _playerStateSubscription;
 
   get _isPlaying => _playerState == PlayerState.playing;
+
   get _isPaused => _playerState == PlayerState.paused;
+
   get _durationText => _duration?.toString()?.split('.')?.first ?? '';
+
   get _positionText => _position?.toString()?.split('.')?.first ?? '';
 
   get _isPlayingThroughEarpiece =>
@@ -67,51 +78,56 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              key: Key('play_button'),
-              onPressed: _isPlaying ? null : () => _play(),
-              iconSize: 64.0,
-              icon: Icon(Icons.play_arrow),
-              color: Colors.cyan,
+    return Card(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Container(
+            height: 35,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  key: Key('play_button'),
+                  onPressed: _isPlaying ? null : () => _play(),
+                  iconSize: 24.0,
+                  icon: Icon(Icons.play_arrow),
+                  color: Colors.cyan,
+                ),
+                IconButton(
+                  key: Key('pause_button'),
+                  onPressed: _isPlaying ? () => _pause() : null,
+                  iconSize: 24.0,
+                  icon: Icon(Icons.pause),
+                  color: Colors.cyan,
+                ),
+                IconButton(
+                  key: Key('stop_button'),
+                  onPressed: _isPlaying || _isPaused ? () => _stop() : null,
+                  iconSize: 24.0,
+                  icon: Icon(Icons.stop),
+                  color: Colors.cyan,
+                ),
+                IconButton(
+                  onPressed: _earpieceOrSpeakersToggle,
+                  iconSize: 24.0,
+                  icon: _isPlayingThroughEarpiece
+                      ? Icon(Icons.volume_up)
+                      : Icon(Icons.hearing),
+                  color: Colors.cyan,
+                ),
+              ],
             ),
-            IconButton(
-              key: Key('pause_button'),
-              onPressed: _isPlaying ? () => _pause() : null,
-              iconSize: 64.0,
-              icon: Icon(Icons.pause),
-              color: Colors.cyan,
-            ),
-            IconButton(
-              key: Key('stop_button'),
-              onPressed: _isPlaying || _isPaused ? () => _stop() : null,
-              iconSize: 64.0,
-              icon: Icon(Icons.stop),
-              color: Colors.cyan,
-            ),
-            IconButton(
-              onPressed: _earpieceOrSpeakersToggle,
-              iconSize: 64.0,
-              icon: _isPlayingThroughEarpiece
-                  ? Icon(Icons.volume_up)
-                  : Icon(Icons.hearing),
-              color: Colors.cyan,
-            ),
-          ],
-        ),
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: EdgeInsets.all(12.0),
-              child: Stack(
-                children: [
-                  Slider(
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    thumbShape: RoundSliderThumbShape(enabledThumbRadius: 6.0),
+                    inactiveTrackColor: Colors.blueGrey,
+                  ),
+                  child: Slider(
                     onChanged: (v) {
                       final Position = v * _duration.inMilliseconds;
                       _audioPlayer
@@ -123,25 +139,61 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                             _position.inMilliseconds < _duration.inMilliseconds)
                         ? _position.inMilliseconds / _duration.inMilliseconds
                         : 0.0,
-                  ),
-                ],
+                  )),
+              Text(
+                _position != null
+                    ? '${_positionText ?? ''} / ${_durationText ?? ''}'
+                    : _duration != null ? _durationText : '',
+                style: TextStyle(fontSize: 14.0),
               ),
-            ),
-            Text(
-              _position != null
-                  ? '${_positionText ?? ''} / ${_durationText ?? ''}'
-                  : _duration != null ? _durationText : '',
-              style: TextStyle(fontSize: 24.0),
-            ),
-          ],
-        ),
-        Text('State: $_audioPlayerState')
-      ],
+            ],
+          ),
+//          Text('State: $_audioPlayerState')
+        ],
+      ),
     );
+  }
+
+  Future<int> _getDuration() async {
+    File audiofile = await audioCache.loadFromUrl(widget.url);
+
+    await _audioPlayer.setUrl(
+      audiofile.path,
+    );
+    int duration = await Future.delayed(
+        Duration(seconds: 2), () => _audioPlayer.getDuration());
+
+    setState(() {
+      _duration = Duration(milliseconds: duration);
+    });
+    return duration;
   }
 
   void _initAudioPlayer() {
     _audioPlayer = AudioPlayer(mode: mode);
+
+    play.add(_audioPlayer);
+
+    if (widget.local) {
+      if (Platform.isIOS) {
+        if (audioCache.fixedPlayer != null) {
+          audioCache.fixedPlayer.startHeadlessService();
+        }
+      }
+      _getDuration();
+
+//      File audiofile = await audioCache.loadFromUrl(widget.url);
+//      await _audioPlayer.setUrl(
+//        audiofile.path,
+//      );
+//      int duration  = await Future.delayed(
+//          Duration(seconds: 2), () => _audioPlayer.getDuration());
+//
+//      _duration =  Duration(milliseconds:duration);
+
+    }
+
+    //Faz o Download do arquivo
 
     _durationSubscription = _audioPlayer.onDurationChanged.listen((duration) {
       setState(() => _duration = duration);
@@ -157,8 +209,10 @@ class _PlayerWidgetState extends State<PlayerWidget> {
             artist: 'Artist or blank',
             albumTitle: 'Name or blank',
             imageUrl: 'url or blank',
-            forwardSkipInterval: const Duration(seconds: 30), // default is 30s
-            backwardSkipInterval: const Duration(seconds: 30), // default is 30s
+            forwardSkipInterval: const Duration(seconds: 30),
+            // default is 30s
+            backwardSkipInterval: const Duration(seconds: 30),
+            // default is 30s
             duration: duration,
             elapsedTime: Duration(seconds: 0));
       }
@@ -190,6 +244,10 @@ class _PlayerWidgetState extends State<PlayerWidget> {
       if (!mounted) return;
       setState(() {
         _audioPlayerState = state;
+
+        if (_audioPlayerState == AudioPlayerState.PAUSED) {
+          _playerState = PlayerState.paused;
+        }
       });
     });
 
@@ -202,20 +260,31 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   }
 
   Future<int> _play() async {
+    play.forEach((element) {
+      element.pause();
+    });
+
     final playPosition = (_position != null &&
             _duration != null &&
             _position.inMilliseconds > 0 &&
             _position.inMilliseconds < _duration.inMilliseconds)
         ? _position
         : null;
-    final result = await _audioPlayer.play(url, position: playPosition);
+
+    if (_audioPlayerState != null &&
+        _audioPlayerState == AudioPlayerState.COMPLETED) {
+      _audioPlayer.seek(Duration(milliseconds: 0));
+    }
+
+    final int result = widget.local
+        ? await _audioPlayer.resume()
+        : await _audioPlayer.play(url, position: playPosition);
     if (result == 1) setState(() => _playerState = PlayerState.playing);
 
     // default playback rate is 1.0
     // this should be called after _audioPlayer.play() or _audioPlayer.resume()
     // this can also be called everytime the user wants to change playback rate in the UI
     _audioPlayer.setPlaybackRate(playbackRate: 1.0);
-
     return result;
   }
 
@@ -240,7 +309,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     if (result == 1) {
       setState(() {
         _playerState = PlayerState.stopped;
-        _position = Duration();
+        _position = Duration(seconds: 0);
       });
     }
     return result;

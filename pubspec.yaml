@@ -10,7 +10,7 @@ flutter:
         package: xyz.luan.audioplayers
         pluginClass: AudioplayersPlugin
       ios:
-        pluginClass: AudioplayersPlugin
+        pluginClass: AudioplayersPlugindrive
       macos:
         pluginClass: AudioplayersPlugin
       web:

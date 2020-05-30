@@ -8,27 +8,27 @@ PODS:
     - Flutter
 
 DEPENDENCIES:
-  - audioplayers (from `/Users/luannico/Projects/audioplayers/ios`)
-  - Flutter (from `/Users/luannico/softwares/flutter/flutter/bin/cache/artifacts/engine/ios`)
-  - path_provider (from `/Users/luannico/softwares/flutter/flutter/.pub-cache/hosted/pub.dartlang.org/path_provider-1.5.1/ios`)
-  - "path_provider_macos (from `/Users/luannico/softwares/flutter/flutter/.pub-cache/hosted/pub.dartlang.org/path_provider_macos-0.0.2+1/ios`)"
+  - audioplayers (from `/Users/guilherme_pneto/projetos/libs_externas/audioplayers/ios`)
+  - Flutter (from `/Users/guilherme_pneto/development/flutter/bin/cache/artifacts/engine/ios`)
+  - path_provider (from `/Users/guilherme_pneto/development/flutter/.pub-cache/hosted/pub.dartlang.org/path_provider-1.6.9/ios`)
+  - "path_provider_macos (from `/Users/guilherme_pneto/development/flutter/.pub-cache/hosted/pub.dartlang.org/path_provider_macos-0.0.4+3/ios`)"
 
 EXTERNAL SOURCES:
   audioplayers:
-    :path: "/Users/luannico/Projects/audioplayers/ios"
+    :path: "/Users/guilherme_pneto/projetos/libs_externas/audioplayers/ios"
   Flutter:
-    :path: "/Users/luannico/softwares/flutter/flutter/bin/cache/artifacts/engine/ios"
+    :path: "/Users/guilherme_pneto/development/flutter/bin/cache/artifacts/engine/ios"
   path_provider:
-    :path: "/Users/luannico/softwares/flutter/flutter/.pub-cache/hosted/pub.dartlang.org/path_provider-1.5.1/ios"
+    :path: "/Users/guilherme_pneto/development/flutter/.pub-cache/hosted/pub.dartlang.org/path_provider-1.6.9/ios"
   path_provider_macos:
-    :path: "/Users/luannico/softwares/flutter/flutter/.pub-cache/hosted/pub.dartlang.org/path_provider_macos-0.0.2+1/ios"
+    :path: "/Users/guilherme_pneto/development/flutter/.pub-cache/hosted/pub.dartlang.org/path_provider_macos-0.0.4+3/ios"
 
 SPEC CHECKSUMS:
-  audioplayers: 84f968cea3f2deab00ec4f8ff53358b3c0b3992c
+  audioplayers: 53f0f30789b10ab2009771c6c79def00980945e4
   Flutter: 0e3d915762c693b495b44d77113d4970485de6ec
-  path_provider: fb74bd0465e96b594bb3b5088ee4a4e7bb1f2a9d
+  path_provider: abfe2b5c733d04e238b0d8691db0cfd63a27a93c
   path_provider_macos: f760a3c5b04357c380e2fddb6f9db6f3015897e0
 
 PODFILE CHECKSUM: 1003743f06ec24ad436e3271b83a8ca2bee2fed4
 
-COCOAPODS: 1.8.4
+COCOAPODS: 1.9.1

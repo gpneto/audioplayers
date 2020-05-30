@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
 
 import 'audioplayers.dart';
 
@@ -84,6 +85,35 @@ class AudioCache {
     return loadedFiles[fileName];
   }
 
+  /// Loads a single [url] from remote to the cache.
+  ///
+  /// Also returns a [Future] to access that file.
+  Future<File> loadFromUrl(String url) async {
+    //Get file Name
+    String urlDecode = Uri.decodeFull(url);
+    String part1 = urlDecode.substring(urlDecode.lastIndexOf("/") + 1);
+    String fileName;
+    if (part1.contains("?")) {
+      fileName = part1.substring(0, part1.indexOf("?"));
+    } else {
+      fileName = part1;
+    }
+
+    if (!loadedFiles.containsKey(fileName)) {
+      //Check if exists local
+      final file = File('${(await getTemporaryDirectory()).path}/$fileName');
+      if (!file.existsSync()) {
+        final bytes = await http.readBytes(url);
+
+        await file.writeAsBytes(bytes);
+      }
+
+      loadedFiles[fileName] = file;
+    }
+
+    return loadedFiles[fileName];
+  }
+
   AudioPlayer _player(PlayerMode mode) {
     return fixedPlayer ?? new AudioPlayer(mode: mode);
   }
@@ -108,6 +138,30 @@ class AudioCache {
       respectSilence: isNotification ?? respectSilence,
       stayAwake: stayAwake,
     );
+    return player;
+  }
+
+  /// Plays the given [fileName].
+  ///
+  /// If the file is already cached, it plays immediately. Otherwise, first waits for the file to load (might take a few milliseconds).
+  /// It creates a new instance of [AudioPlayer], so it does not affect other audios playing (unless you specify a [fixedPlayer], in which case it always use the same).
+  /// The instance is returned, to allow later access (either way), like pausing and resuming.
+  ///
+  /// isNotification and stayAwake are not implemented on macOS
+  Future<AudioPlayer> playFromUrl(String url,
+      {double volume = 1.0,
+      bool isNotification,
+      PlayerMode mode = PlayerMode.MEDIA_PLAYER,
+      bool stayAwake,
+      Duration position}) async {
+    File file = await loadFromUrl(url);
+    AudioPlayer player = _player(mode);
+    await player.play(file.path,
+        volume: volume,
+        isLocal: true,
+        respectSilence: isNotification ?? respectSilence,
+        stayAwake: stayAwake,
+        position: position);
     return player;
   }
 
